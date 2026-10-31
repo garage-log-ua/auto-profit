@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#7CB342">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Складський облік">
+  <title>Складський облік</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --purple: #7c3aed;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --input-bg: #f8fafc;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --input-bg: #0f172a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    .header {
+      background: var(--card);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .close-btn, .icon-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; cursor: pointer;
+    }
+    .warehouse-title {
+      display: flex; align-items: center; gap: 8px;
+      padding: 16px;
+      font-size: 20px; font-weight: 600;
+    }
+    .date-label { margin-left: auto; color: var(--muted); font-size: 14px; font-weight: 400; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      padding: 0 8px;
+      position: sticky;
+      top: 61px;
+      z-index: 90;
+    }
+    .tab {
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      border: none;
+      background: none;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .tab-icon { font-size: 16px; }
+
+    /* Content */
+    .content { padding: 16px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Summary cards */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .summary-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px 8px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .summary-card .num {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .summary-card .num.blue { color: var(--primary); }
+    .summary-card .num.green { color: var(--success); }
+    .summary-card .num.red { color: var(--danger); }
+    .summary-card .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .card-header .sub { font-size: 13px; color: var(--muted); font-weight: 400; }
+
+    /* Stock list */
+    .stock-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .stock-item:last-child { border-bottom: none; }
+    .stock-qty {
+      background: #f1f5f9;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      min-width: 40px;
+      text-align: center;
+    }
+    .stock-qty.zero, .stock-qty.low {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    [data-theme="dark"] .stock-qty.zero,
+    [data-theme="dark"] .stock-qty.low {
+      background: #450a0a;
+      color: #fca5a5;
+    }
+    .quick-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .quick-btns button {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-row select, .filter-row input {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+    .badge-cat {
+      font-size: 11px;
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+    [data-theme="dark"] .badge-cat {
+      background: #312e81;
+      color: #c7d2fe;
+    }
+    .theme-toggle {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-green { background: var(--success); color: #fff; }
+    .btn-red { background: var(--danger); color: #fff; }
+    .btn-blue { background: var(--primary); color: #fff; }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-outline {
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn:active { opacity: 0.85; }
+
+    /* History */
+    .history-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-type {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .history-type.in { background: #dcfce7; color: #166534; }
+    .history-type.out { background: #fee2e2; color: #991b1b; }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 30px 10px;
+      font-size: 15px;
+    }
+
+    /* Settings */
+    .product-item, .kit-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .product-item:last-child, .kit-item:last-child { border-bottom: none; }
+    .kit-components {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .actions { display: flex; gap: 8px; }
+    .action-btn {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .action-btn.edit { background: #dbeafe; }
+    .action-btn.delete { background: #fee2e2; }
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .add-row input { flex: 1; }
+
+    /* Report */
+    .report-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .report-result {
+      margin-top: 16px;
+    }
+    .report-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: flex-end;
+      z-index: 200;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card);
+      width: 100%;
+      border-radius: 20px 20px 0 0;
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h3 { margin-bottom: 16px; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .modal-actions .btn { flex: 1; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* Danger zone */
+    .danger-zone {
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+    .danger-zone h4 {
+      color: var(--danger);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .danger-zone p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* Checkbox list for kits */
+    .checkbox-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+    }
+    .checkbox-item input { width: auto; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="close-btn" onclick="alert('Це демо-версія. Закрийте вкладку браузера.')">✕</button>
+      <h1>Складський облік</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Тема">🌓</button>
+      <button class="icon-btn" onclick="copyLink()" title="Копіювати посилання">🔗</button>
+      <button class="icon-btn" onclick="shareApp()" title="Поділитися">↗</button>
+    </div>
+  </div>
+
+  <div class="warehouse-title">
+    <span>📦</span> Склад
+    <span class="date-label" id="currentDate"></span>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="sklad">Склад</button>
+    <button class="tab" data-tab="pryhid">Прихід</button>
+    <button class="tab" data-tab="prodazhi">Продажі</button>
+    <button class="tab" data-tab="istoriya">Історія</button>
+    <button class="tab" data-tab="mashyna">В машині</button>
+    <button class="tab" data-tab="vidpravky">Відправки</button>
+    <button class="tab" data-tab="zvit"><span class="tab-icon">📊</span></button>
+    <button class="tab" data-tab="settings">⚙️</button>
+  </div>
+
+  <div class="content">
+    <!-- СКЛАД -->
+    <div class="page active" id="page-sklad">
+      <div class="summary">
+        <div class="summary-card">
+          <div class="num blue" id="totalUnits">0</div>
+          <div class="label">Всього одиниць</div>
+        </div>
+        <div class="summary-card" onclick="switchToTab('pryhid')" style="cursor:pointer;">
+          <div class="num green" id="totalIn">0</div>
+          <div class="label">Надійшло</div>
+        </div>
+        <div class="summary-card" onclick="switchToTab('prodazhi')" style="cursor:pointer;">
+          <div class="num red" id="totalOut">0</div>
+          <div class="label">Продано</div>
+        </div>
+        <div class="summary-card" onclick="switchToTab('mashyna')" style="cursor:pointer;">
+          <div class="num blue" id="totalCar">0</div>
+          <div class="label">В машині</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          Залишки
+          <span class="sub" id="updatedAt">оновлено зараз</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <input type="text" id="stockSearch" placeholder="🔍 Пошук товару..." style="flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#f8fafc;">
+          <select id="stockSort" style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#f8fafc;">
+            <option value="manual" selected>Мій порядок</option>
+            <option value="name">За назвою</option>
+            <option value="qty-desc">Кількість ↓</option>
+            <option value="qty-asc">Кількість ↑</option>
+          </select>
+        </div>
+        <div id="stockList"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+          <button class="btn btn-outline" style="flex:1;padding:10px;font-size:14px;" onclick="manualSync()">↻ Оновити</button>
+          <button class="btn btn-purple" style="flex:1;padding:10px;font-size:14px;" onclick="openGroupModal()">Обʼєднати</button>
+          <button class="btn btn-blue" style="flex:1;padding:10px;font-size:14px;" onclick="exportCSV()">⬇ Експорт CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ПРИХІД -->
+    <div class="page" id="page-pryhid">
+      <div class="card">
+        <div class="card-header">Додати прихід</div>
+        <div class="form-group">
+          <label>Дата</label>
+          <input type="date" id="inDay">
+        </div>
+        <div class="form-group">
+          <label>Товар або комплект</label>
+          <select id="inItem">
+            <option value="">— Оберіть —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Кількість</label>
+          <input type="number" id="inQty" min="1" value="1">
+        </div>
+        <div class="form-group">
+          <label>Коментар (необовʼязково)</label>
+          <input type="text" id="inComment" placeholder="Наприклад: від постачальника">
+        </div>
+        <button class="btn btn-green" onclick="addIncoming()">✓ Додати прихід</button>
+      </div>
+      <div class="card">
+        <div class="card-header">ОСТАННІ ЗАПИСИ</div>
+        <div id="inRecent"></div>
+      </div>
+    </div>
+
+    <!-- ПРОДАЖІ -->
+    <div class="page" id="page-prodazhi">
+      <div class="card">
+        <div class="card-header">Додати продаж</div>
+        <div class="form-group">
+          <label>Дата</label>
+          <input type="date" id="outDay">
+        </div>
+        <div class="form-group">
+          <label>Товар або комплект</label>
+          <select id="outItem">
+            <option value="">— Оберіть —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Кількість</label>
+          <input type="number" id="outQty" min="1" value="1">
+        </div>
+        <div class="form-group">
+          <label>Коментар (необовʼязково)</label>
+          <input type="text" id="outComment" placeholder="Наприклад: клієнт Іван">
+        </div>
+        <button class="btn btn-red" onclick="addSale()">✓ Додати продаж</button>
+      </div>
+      <div class="card">
+        <div class="card-header">ОСТАННІ ЗАПИСИ</div>
+        <div id="outRecent"></div>
+      </div>
+    </div>
+
+    <!-- В МАШИНІ -->
+    <div class="page" id="page-mashyna">
+      <div class="card">
+        <div class="card-header">
+          Комплекти в машині
+          <span class="sub">тільки комплекти</span>
+        </div>
+        <button class="btn btn-purple" style="margin-bottom:12px;" onclick="openKitModal()">+ Створити комплект</button>
+        <div id="carList"></div>
+      </div>
+    </div>
+
+    <!-- ВІДПРАВКИ -->
+    <div class="page" id="page-vidpravky">
+      <div class="card">
+        <div class="card-header">Нова відправка</div>
+        <div class="form-group">
+          <label>Назва товару</label>
+          <input type="text" id="shipItem" placeholder="Z41 рурка">
+        </div>
+        <div class="form-group">
+          <label>Отримувач</label>
+          <input type="text" id="shipName" placeholder="Шевченко Олександр">
+        </div>
+        <div class="form-group">
+          <label>Місто / відділення</label>
+          <input type="text" id="shipPlace" placeholder="Київ, відділення №319">
+        </div>
+        <div class="form-group">
+          <label>Телефон отримувача</label>
+          <input type="tel" id="shipPhone" placeholder="093 702 4145">
+        </div>
+        <div class="form-group">
+          <label>Сума, грн</label>
+          <input type="number" id="shipSum" min="0" placeholder="2500">
+        </div>
+        <button class="btn btn-green" onclick="addShipment()">✓ Додати відправку</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          Список
+          <span class="sub" id="shipTotal">0 грн</span>
+        </div>
+        <div id="shipList"></div>
+      </div>
+    </div>
+
+    <!-- ІСТОРІЯ -->
+    <div class="page" id="page-istoriya">
+      <div class="card">
+        <div class="card-header">
+          Всі операції
+          <button style="background:none;border:none;color:var(--danger);font-size:14px;cursor:pointer;" onclick="clearHistory()">Очистити</button>
+        </div>
+        <div class="filter-row">
+          <select id="histFilterType" onchange="renderHistory()">
+            <option value="all">Усі типи</option>
+            <option value="in">Тільки прихід</option>
+            <option value="out">Тільки продаж</option>
+          </select>
+          <input type="text" id="histFilterSearch" placeholder="Пошук..." oninput="renderHistory()" style="flex:1;">
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <!-- ЗВІТ -->
+    <div class="page" id="page-zvit">
+      <div class="card">
+        <div class="card-header">📊 Звіт за період</div>
+        <div class="report-row">
+          <div class="form-group">
+            <label>Місяць</label>
+            <select id="reportMonth">
+              <option value="1">Січень</option>
+              <option value="2">Лютий</option>
+              <option value="3">Березень</option>
+              <option value="4">Квітень</option>
+              <option value="5">Травень</option>
+              <option value="6">Червень</option>
+              <option value="7">Липень</option>
+              <option value="8">Серпень</option>
+              <option value="9">Вересень</option>
+              <option value="10" selected>Жовтень</option>
+              <option value="11">Листопад</option>
+              <option value="12">Грудень</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Рік</label>
+            <select id="reportYear">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+            </select>
+          </div>
+        </div>
+        <div class="report-row">
+          <div class="form-group">
+            <label>З дня</label>
+            <input type="number" id="reportFrom" min="1" max="31" value="1">
+          </div>
+          <div class="form-group">
+            <label>По день</label>
+            <input type="number" id="reportTo" min="1" max="31" value="31">
+          </div>
+        </div>
+        <button class="btn btn-blue" onclick="generateReport()">Сформувати звіт</button>
+        <div class="report-result" id="reportResult"></div>
+      </div>
+    </div>
+
+    <!-- НАЛАШТУВАННЯ -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-header">Списки складу</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Обʼєднані позиції. Видалення списку не видаляє товари.</p>
+        <div id="groupsSettings"></div>
+        <button class="btn btn-purple" style="margin-top:12px;" onclick="openGroupModal()">Обʼєднати</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Товари</div>
+        <div id="productsList"></div>
+        <div style="margin-top:12px;display:grid;gap:8px;">
+          <input type="text" id="newProductName" placeholder="Назва нового товару">
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="newProductUnit" placeholder="Од. (шт)" style="width:80px;" value="шт">
+            <input type="text" id="newProductCat" placeholder="Категорія" style="flex:1;">
+            <input type="number" id="newProductMin" placeholder="Мін." style="width:70px;" min="0" value="0">
+          </div>
+          <button class="btn btn-blue" onclick="addProduct()">+ Додати товар</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🔧 Комплекти</div>
+        <div id="kitsList"></div>
+        <button class="btn btn-purple" style="margin-top:12px;" onclick="openKitModal()">+ Створити комплект</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Резервна копія</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-outline" style="flex:1;" onclick="downloadBackup()">⬇ Завантажити бекап</button>
+          <button class="btn btn-blue" style="flex:1;" onclick="document.getElementById('restoreFile').click()">⬆ Відновити</button>
+          <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restoreBackup(event)">
+        </div>
+      </div>
+
+      <div class="danger-zone">
+        <h4>⚠️ Скинути дані</h4>
+        <p>Видалити всю історію операцій (залишки скинуться до 0)</p>
+        <button class="btn btn-red" onclick="resetAllData()">Очистити всю історію</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Kit -->
+  <div class="modal-overlay" id="kitModal">
+    <div class="modal">
+      <h3 id="kitModalTitle">Створити комплект</h3>
+      <div class="form-group">
+        <label>Назва комплекту</label>
+        <input type="text" id="kitName" placeholder="Наприклад: Комплект Z41">
+      </div>
+      <div class="form-group">
+        <label>Складові</label>
+        <div class="checkbox-list" id="kitComponents"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeKitModal()">Скасувати</button>
+        <button class="btn btn-purple" onclick="saveKit()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Edit History -->
+  <div class="modal-overlay" id="editHistoryModal">
+    <div class="modal">
+      <h3>Редагувати запис</h3>
+      <div class="form-group">
+        <label>Тип</label>
+        <select id="editHistType">
+          <option value="in">Прихід</option>
+          <option value="out">Продаж</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>День місяця</label>
+        <input type="number" id="editHistDay" min="1" max="31">
+      </div>
+      <div class="form-group">
+        <label>Товар або комплект</label>
+        <select id="editHistItem">
+          <option value="">— Оберіть —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Кількість</label>
+        <input type="number" id="editHistQty" min="1">
+      </div>
+      <div class="form-group">
+        <label>Коментар</label>
+        <input type="text" id="editHistComment" placeholder="Необовʼязково">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeEditHistoryModal()">Скасувати</button>
+        <button class="btn btn-blue" onclick="saveEditHistory()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="groupModal">
+    <div class="modal">
+      <h3>Обʼєднати в список</h3>
+      <div class="form-group">
+        <label>Назва списку</label>
+        <input type="text" id="groupName" placeholder="Наприклад: Кт Z41A">
+      </div>
+      <div class="form-group">
+        <label>Товари</label>
+        <div class="checkbox-list" id="groupProducts"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeGroupModal()">Скасувати</button>
+        <button class="btn btn-purple" onclick="saveGroup()">Обʼєднати</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ========== DATA ==========
+    // ========== SHARED STORAGE (Firebase Realtime Database) ==========
+    const FIREBASE_URL = 'https://sklad-304e4-default-rtdb.europe-west1.firebasedatabase.app/sklad.json';
+    const STORAGE_KEY = 'sklad_oblik_v1';
+
+    let state = {
+      products: [],
+      kits: [],
+      history: [],
+      shipments: [],
+      groups: [],
+      editingKitId: null,
+      editingHistoryId: null
+    };
+    let isSaving = false;
+    let lastCloudHash = '';
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function getStatePayload() {
+      return {
+        products: state.products,
+        kits: state.kits,
+        history: state.history,
+        shipments: state.shipments || [],
+        groups: state.groups || []
+      };
+    }
+
+    function applyPayload(data) {
+      if (!data) return;
+      state.products = data.products || [];
+      state.kits = data.kits || [];
+      state.history = data.history || [];
+      state.shipments = data.shipments || [];
+      state.groups = data.groups || [];
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch(FIREBASE_URL + '?t=' + Date.now());
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            applyPayload(data);
+            lastCloudHash = JSON.stringify(getStatePayload());
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(getStatePayload()));
+          }
+        }
+      } catch (e) {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          try { applyPayload(JSON.parse(raw)); } catch(e2) {}
+        }
+      }
+
+      if (state.products.length === 0) {
+        const defaults = [
+          'Z41 рурка', 'Z41A рурка', 'Рурка ступінчаста', 'Диск', 'Диск зрізаний',
+          'Z50', 'Z62', '74', '66A', 'Полумесяц', 'Шайба', '13A', '62', '16', '76', 'Шуруп'
+        ];
+        defaults.forEach(name => {
+          state.products.push({ id: uid(), name, qty: 0, minQty: 0, unit: 'шт', category: '' });
+        });
+        await saveState();
+      }
+      if (!state.groups || state.groups.length === 0) {
+        const byName = n => state.products.find(p => p.name.toLowerCase() === n);
+        const z = ['Z41A рурка', 'Рурка ступінчаста', 'Диск', 'Диск зрізаний'].map(byName).filter(Boolean).map(p => p.id);
+        const a = ['Полумесяц', 'Шайба'].map(byName).filter(Boolean).map(p => p.id);
+        state.groups = [];
+        if (z.length >= 2) state.groups.push({ id: uid(), title: 'Кт Z41A', ids: z });
+        if (a.length >= 2) state.groups.push({ id: uid(), title: 'Кт 066А', ids: a });
+        if (state.groups.length) await saveState();
+      }
+    }
+
+    async function saveState() {
+      const payload = getStatePayload();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      lastCloudHash = JSON.stringify(payload);
+
+      if (isSaving) return;
+      isSaving = true;
+      try {
+        await fetch(FIREBASE_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.warn('Firebase save failed', e);
+      }
+      isSaving = false;
+    }
+
+    async function syncFromCloud() {
+      if (isSaving) return;
+      try {
+        const res = await fetch(FIREBASE_URL + '?t=' + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data) return;
+        const newHash = JSON.stringify({
+          products: data.products || [],
+          kits: data.kits || [],
+          history: data.history || [],
+          shipments: data.shipments || [],
+          groups: data.groups || []
+        });
+        if (newHash !== lastCloudHash) {
+          applyPayload(data);
+          lastCloudHash = newHash;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(getStatePayload()));
+          refreshAll();
+        }
+      } catch (e) {}
+    }
+
+    // Синхронізація кожні 5 секунд + при поверненні на вкладку
+    setInterval(syncFromCloud, 5000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) syncFromCloud(); });
+
+    // ========== TABS ==========
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchToTab(tab.dataset.tab);
+      });
+    });
+
+    function switchToTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const tab = document.querySelector(`.tab[data-tab="${name}"]`);
+      if (tab) tab.classList.add('active');
+      const page = document.getElementById('page-' + name);
+      if (page) page.classList.add('active');
+      refreshAll();
+    }
+
+    // ========== RENDER ==========
+    function refreshAll() {
+      renderStock();
+      renderSelects();
+      renderRecent('in');
+      renderRecent('out');
+      renderHistory();
+      renderProducts();
+      renderKits();
+      renderShipments();
+      renderGroupsSettings();
+      renderCar();
+      updateSummary();
+      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+      const upd = document.getElementById('updatedAt');
+      if (upd) upd.textContent = 'оновлено ' + new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'});
+    }
+
+    function updateSummary() {
+      let shelf = 0, car = 0, totalIn = 0, totalOut = 0;
+      state.products.forEach(p => {
+        shelf += Number(p.qty) || 0;
+        car += Number(p.carQty) || 0;
+      });
+      state.history.forEach(h => {
+        if (h.type === 'in') totalIn += h.qty;
+        else totalOut += h.qty;
+      });
+      document.getElementById('totalUnits').textContent = shelf + car;
+      document.getElementById('totalIn').textContent = totalIn;
+      document.getElementById('totalOut').textContent = totalOut;
+      const carEl = document.getElementById('totalCar');
+      if (carEl) carEl.textContent = car;
+    }
+
+    function stockRow(p, canMove, idx, total) {
+      const minQ = p.minQty || 0;
+      const qtyClass = p.qty <= 0 ? 'stock-qty zero' : (minQ > 0 && p.qty < minQ ? 'stock-qty low' : 'stock-qty');
+      const unit = p.unit || 'шт';
+      const cat = p.category ? `<span class="badge-cat">${escapeHtml(p.category)}</span>` : '';
+      const move = canMove ? `
+        <div class="quick-btns" style="flex-direction:column;">
+          <button onclick="moveProduct('${p.id}', -1)" ${idx === 0 ? 'disabled' : ''} title="Вище">↑</button>
+          <button onclick="moveProduct('${p.id}', 1)" ${idx === total - 1 ? 'disabled' : ''} title="Нижче">↓</button>
+        </div>` : '';
+      return `
+        <div class="stock-item">
+          ${move}
+          <div style="flex:1;min-width:0;">
+            <div>${escapeHtml(p.name)}${cat}</div>
+            <div style="font-size:12px;color:var(--muted);">${unit}${minQ > 0 ? ' · мін. ' + minQ : ''}${p.carQty ? ' · в машині ' + p.carQty : ''}</div>
+          </div>
+          <div class="quick-btns">
+            <button onclick="quickAdjust('${p.id}', -1)">−</button>
+            <span class="${qtyClass}">${p.qty}</span>
+            <button onclick="quickAdjust('${p.id}', 1)">+</button>
+          </div>
+        </div>`;
+    }
+
+    const STOCK_GROUPS = state.groups || [];
+
+    function renderStock() {
+      const list = document.getElementById('stockList');
+      const search = (document.getElementById('stockSearch')?.value || '').toLowerCase().trim();
+      const sort = document.getElementById('stockSort')?.value || 'manual';
+      const canMove = sort === 'manual' && !search;
+      const openMap = JSON.parse(localStorage.getItem('sklad_groups') || '{}');
+
+      let items = [...state.products];
+      if (search) items = items.filter(p => p.name.toLowerCase().includes(search));
+      if (sort === 'name') items.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+      else if (sort === 'qty-desc') items.sort((a, b) => b.qty - a.qty);
+      else if (sort === 'qty-asc') items.sort((a, b) => a.qty - b.qty);
+
+      if (!items.length) {
+        list.innerHTML = '<div class="empty">' + (search ? 'Нічого не знайдено' : 'Немає товарів') + '</div>';
+        return;
+      }
+
+      const used = new Set();
+      let html = '';
+      const groups = state.groups || [];
+
+      if (sort === 'manual' || true) {
+        groups.forEach(g => {
+          const members = (g.ids || []).map(id => items.find(p => p.id === id)).filter(Boolean);
+          members.forEach(p => used.add(p.id));
+          if (!members.length) return;
+          const open = openMap[g.id] !== false;
+          const sum = members.reduce((s, p) => s + (Number(p.qty) || 0), 0);
+          html += `
+            <div class="stock-item" onclick="toggleStockGroup('${g.id}')" style="cursor:pointer;background:#f8fafc;">
+              <div style="font-size:18px;width:28px;">${open ? '▾' : '▸'}</div>
+              <div style="flex:1;font-weight:700;">${escapeHtml(g.title)}</div>
+              <button class="action-btn delete" onclick="event.stopPropagation();deleteGroup('${g.id}')" title="Видалити список">🗑</button>
+              <span class="stock-qty">${sum}</span>
+            </div>`;
+          if (open) {
+            html += members.map(p => stockRow(p, canMove, state.products.findIndex(x => x.id === p.id), state.products.length)).join('');
+          }
+        });
+      }
+
+      items.forEach(p => {
+        if (used.has(p.id)) return;
+        html += stockRow(p, canMove, state.products.findIndex(x => x.id === p.id), state.products.length);
+      });
+      list.innerHTML = html;
+    }
+
+    function toggleStockGroup(id) {
+      const openMap = JSON.parse(localStorage.getItem('sklad_groups') || '{}');
+      openMap[id] = openMap[id] === false;
+      localStorage.setItem('sklad_groups', JSON.stringify(openMap));
+      renderStock();
+      renderCar();
+    }
+
+    function renderCar() {
+      const list = document.getElementById('carList');
+      if (!list) return;
+      const kits = state.kits || [];
+      if (!kits.length) {
+        list.innerHTML = '<div class="empty">Комплектів немає. Створіть перший.</div>';
+        return;
+      }
+      list.innerHTML = kits.map(k => {
+        const names = (k.components || []).map(cid => {
+          const p = state.products.find(x => x.id === cid);
+          return p ? p.name : '?';
+        });
+        const carQtys = (k.components || []).map(cid => {
+          const p = state.products.find(x => x.id === cid);
+          return p ? (Number(p.carQty) || 0) : 0;
+        });
+        const shelfQtys = (k.components || []).map(cid => {
+          const p = state.products.find(x => x.id === cid);
+          return p ? (Number(p.qty) || 0) : 0;
+        });
+        const inCar = carQtys.length ? Math.min(...carQtys) : 0;
+        const canAdd = shelfQtys.length && shelfQtys.every(q => q >= 1);
+        const canRemove = inCar >= 1;
+        return `
+          <div class="stock-item" style="flex-direction:column;align-items:stretch;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <div style="flex:1;">
+                <div style="font-weight:700;">🔧 ${escapeHtml(k.name)}</div>
+                <div style="font-size:12px;color:var(--muted);">${escapeHtml(names.join(', '))}</div>
+              </div>
+              <span class="stock-qty ${inCar <= 0 ? 'zero' : ''}">${inCar}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-outline" style="padding:8px 12px;font-size:13px;" onclick="returnOneKitToWarehouse('${k.id}')" ${!canRemove ? 'disabled' : ''} title="Повернути на склад">−</button>
+              <button class="btn btn-outline" style="padding:8px 12px;font-size:13px;" onclick="moveKitToCar('${k.id}', 1)" ${!canAdd ? 'disabled' : ''} title="Зі складу в машину">+</button>
+              <button class="btn btn-red" style="padding:8px 12px;font-size:13px;" onclick="sellKitFromCar('${k.id}')" ${!canRemove ? 'disabled' : ''}>Продати</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function moveKitToCar(kitId, delta) {
+      const kit = state.kits.find(k => k.id === kitId);
+      if (!kit || !kit.components || !kit.components.length) return;
+      if (delta <= 0) return;
+      for (const cid of kit.components) {
+        const p = state.products.find(x => x.id === cid);
+        if (!p || (Number(p.qty) || 0) < 1) return showToast('Недостатньо на складі для комплекту');
+      }
+      for (const cid of kit.components) {
+        const p = state.products.find(x => x.id === cid);
+        p.qty = (Number(p.qty) || 0) - 1;
+        p.carQty = (Number(p.carQty) || 0) + 1;
+      }
+      saveState();
+      refreshAll();
+      showToast('Комплект у машині');
+    }
+
+    function returnOneKitToWarehouse(kitId) {
+      const kit = state.kits.find(k => k.id === kitId);
+      if (!kit || !kit.components || !kit.components.length) return;
+      for (const cid of kit.components) {
+        const p = state.products.find(x => x.id === cid);
+        if (!p || (Number(p.carQty) || 0) < 1) return showToast('Недостатньо в машині');
+      }
+      for (const cid of kit.components) {
+        const p = state.products.find(x => x.id === cid);
+        p.carQty = (Number(p.carQty) || 0) - 1;
+        p.qty = (Number(p.qty) || 0) + 1;
+      }
+      saveState();
+      refreshAll();
+      showToast('Комплект повернуто на склад');
+    }
+
+    function sellKitFromCar(kitId) {
+      const kit = state.kits.find(k => k.id === kitId);
+      if (!kit || !kit.components || !kit.components.length) return;
+      for (const cid of kit.components) {
+        const p = state.products.find(x => x.id === cid);
+        if (!p || (Number(p.carQty) || 0) < 1) return showToast('Недостатньо в машині для продажу');
+      }
+      for (const cid of kit.components) {
+        const p = state.products.find(x => x.id === cid);
+        p.carQty = (Number(p.carQty) || 0) - 1;
+      }
+      const now = new Date();
+      state.history.push({
+        id: uid(),
+        type: 'out',
+        day: now.getDate(),
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        itemId: kitId,
+        itemName: kit.name,
+        itemType: 'kit',
+        qty: 1,
+        comment: 'Продаж з машини',
+        timestamp: now.toISOString()
+      });
+      saveState();
+      refreshAll();
+      showToast('Комплект продано з машини');
+    }
+
+    function openGroupModal() {
+      document.getElementById('groupName').value = '';
+      const grouped = new Set((state.groups || []).flatMap(g => g.ids || []));
+      document.getElementById('groupProducts').innerHTML = state.products.map(p => `
+        <label><input type="checkbox" value="${p.id}" ${grouped.has(p.id) ? 'disabled' : ''}> ${escapeHtml(p.name)}</label>
+      `).join('');
+      document.getElementById('groupModal').classList.add('show');
+    }
+
+    function closeGroupModal() {
+      document.getElementById('groupModal').classList.remove('show');
+    }
+
+    function saveGroup() {
+      const title = document.getElementById('groupName').value.trim();
+      const ids = [...document.querySelectorAll('#groupProducts input:checked')].map(el => el.value);
+      if (!title) return showToast('Вкажіть назву списку');
+      if (ids.length < 2) return showToast('Оберіть щонайменше 2 товари');
+      if (!state.groups) state.groups = [];
+      state.groups.push({ id: uid(), title, ids });
+      saveState();
+      closeGroupModal();
+      refreshAll();
+      showToast('Список створено');
+    }
+
+    function renderGroupsSettings() {
+      const el = document.getElementById('groupsSettings');
+      if (!el) return;
+      const groups = state.groups || [];
+      if (!groups.length) {
+        el.innerHTML = '<div class="empty">Списків немає</div>';
+        return;
+      }
+      el.innerHTML = groups.map(g => {
+        const names = (g.ids || []).map(id => {
+          const p = state.products.find(x => x.id === id);
+          return p ? p.name : '?';
+        }).join(', ');
+        return `
+          <div class="product-item">
+            <div>
+              <div><strong>${escapeHtml(g.title)}</strong></div>
+              <div style="font-size:12px;color:var(--muted);">${escapeHtml(names)}</div>
+            </div>
+            <button class="action-btn delete" onclick="deleteGroup('${g.id}')" title="Видалити список">🗑</button>
+          </div>`;
+      }).join('');
+    }
+      function deleteGroup(id) {
+      if (!confirm('Видалити цей список? Товари залишаться на складі.')) return;
+      state.groups = (state.groups || []).filter(g => g.id !== id);
+      saveState();
+      refreshAll();
+      showToast('Список видалено');
+    }
+
+    function moveProduct(id, dir) {
+      const i = state.products.findIndex(p => p.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= state.products.length) return;
+      const tmp = state.products[i];
+      state.products[i] = state.products[j];
+      state.products[j] = tmp;
+      saveState();
+      refreshAll();
+    }
+
+    // Слухачі пошуку і сортування
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchEl = document.getElementById('stockSearch');
+      const sortEl = document.getElementById('stockSort');
+      if (searchEl) searchEl.addEventListener('input', renderStock);
+      if (sortEl) sortEl.addEventListener('change', renderStock);
+      const carSearch = document.getElementById('carSearch');
+      if (carSearch) carSearch.addEventListener('input', renderCar);
+    });
+    // На випадок якщо DOM вже готовий
+    setTimeout(() => {
+      const searchEl = document.getElementById('stockSearch');
+      const sortEl = document.getElementById('stockSort');
+      if (searchEl) searchEl.addEventListener('input', renderStock);
+      if (sortEl) sortEl.addEventListener('change', renderStock);
+      const carSearch = document.getElementById('carSearch');
+      if (carSearch) carSearch.addEventListener('input', renderCar);
+    }, 500);
+
+    async function manualSync() {
+      showToast('Оновлення...');
+      await syncFromCloud();
+      document.getElementById('updatedAt').textContent = 'оновлено ' + new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'});
+      showToast('Дані оновлено');
+    }
+
+    function exportCSV() {
+      // Залишки
+      let csv = '=== ЗАЛИШКИ ===\nНазва;Кількість\n';
+      state.products
+        .slice()
+        .sort((a,b) => a.name.localeCompare(b.name, 'uk'))
+        .forEach(p => {
+          csv += `"${p.name.replace(/"/g,'""')}";${p.qty}\n`;
+        });
+
+      csv += '\n=== ІСТОРІЯ ===\nТип;День;Місяць;Рік;Товар;Кількість;Дата\n';
+      [...state.history].reverse().forEach(h => {
+        const type = h.type === 'in' ? 'Прихід' : 'Продаж';
+        const date = new Date(h.timestamp).toLocaleString('uk-UA');
+        csv += `${type};${h.day};${h.month};${h.year};"${h.itemName.replace(/"/g,'""')}";${h.qty};"${date}"\n`;
+      });
+
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sklad_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('CSV завантажено');
+    }
+
+    function renderSelects() {
+      const options = ['<option value="">— Оберіть —</option>'];
+      state.products.forEach(p => {
+        options.push(`<option value="product:${p.id}">${escapeHtml(p.name)}</option>`);
+      });
+      state.kits.forEach(k => {
+        options.push(`<option value="kit:${k.id}">🔧 ${escapeHtml(k.name)}</option>`);
+      });
+      document.getElementById('inItem').innerHTML = options.join('');
+      document.getElementById('outItem').innerHTML = options.join('');
+    }
+
+    function renderRecent(type) {
+      const el = document.getElementById(type === 'in' ? 'inRecent' : 'outRecent');
+      const items = state.history.filter(h => h.type === type).slice(-5).reverse();
+      if (items.length === 0) {
+        el.innerHTML = '<div class="empty">Записів немає</div>';
+        return;
+      }
+      el.innerHTML = items.map(h => `
+        <div class="history-item" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <div style="flex:1;">
+            <span class="history-type ${h.type}">${h.type === 'in' ? 'Прихід' : 'Продаж'}</span>
+            ${escapeHtml(h.itemName)} × ${h.qty} <span style="color:var(--muted)">(день ${h.day})</span>
+          </div>
+          <div class="actions">
+            <button class="action-btn edit" onclick="editHistoryItem('${h.id}')" title="Редагувати">✏️</button>
+            <button class="action-btn delete" onclick="deleteHistoryItem('${h.id}')" title="Видалити">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderHistory() {
+      const el = document.getElementById('historyList');
+      const filterType = document.getElementById('histFilterType')?.value || 'all';
+      const filterSearch = (document.getElementById('histFilterSearch')?.value || '').toLowerCase();
+
+      let items = [...state.history].reverse();
+      if (filterType !== 'all') items = items.filter(h => h.type === filterType);
+      if (filterSearch) items = items.filter(h => h.itemName.toLowerCase().includes(filterSearch) || (h.comment||'').toLowerCase().includes(filterSearch));
+
+      if (items.length === 0) {
+        el.innerHTML = '<div class="empty">' + (state.history.length === 0 ? 'Історія порожня' : 'Нічого не знайдено') + '</div>';
+        return;
+      }
+      el.innerHTML = items.map(h => `
+        <div class="history-item" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div style="flex:1;">
+            <span class="history-type ${h.type}">${h.type === 'in' ? 'Прихід' : 'Продаж'}</span>
+            <strong>${escapeHtml(h.itemName)}</strong> × ${h.qty}
+            ${h.comment ? `<div style="font-size:12px;color:var(--muted);font-style:italic;">💬 ${escapeHtml(h.comment)}</div>` : ''}
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+              День ${h.day}.${String(h.month).padStart(2,'0')}.${h.year} · ${new Date(h.timestamp).toLocaleString('uk-UA')}
+            </div>
+          </div>
+          <div class="actions">
+            <button class="action-btn edit" onclick="editHistoryItem('${h.id}')" title="Редагувати">✏️</button>
+            <button class="action-btn delete" onclick="deleteHistoryItem('${h.id}')" title="Видалити">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderProducts() {
+      const el = document.getElementById('productsList');
+      if (state.products.length === 0) {
+        el.innerHTML = '<div class="empty">Немає товарів</div>';
+        return;
+      }
+      el.innerHTML = state.products.map(p => `
+        <div class="product-item">
+          <div>
+            <div>${escapeHtml(p.name)} ${p.category ? `<span class="badge-cat">${escapeHtml(p.category)}</span>` : ''}</div>
+            <div style="font-size:12px;color:var(--muted);">${p.unit||'шт'}${p.minQty ? ' · мін. '+p.minQty : ''}</div>
+          </div>
+          <button class="action-btn delete" onclick="deleteProduct('${p.id}')">🗑</button>
+        </div>
+      `).join('');
+    }
+
+    function renderShipments() {
+      const el = document.getElementById('shipList');
+      if (!el) return;
+      const list = state.shipments || [];
+      const total = list.reduce((s, x) => s + (Number(x.sum) || 0), 0);
+      const totalEl = document.getElementById('shipTotal');
+      if (totalEl) totalEl.textContent = total + ' грн';
+      if (!list.length) {
+        el.innerHTML = '<div class="empty">Відправок немає</div>';
+        return;
+      }
+      el.innerHTML = [...list].reverse().map((s, i) => {
+        const n = String(list.length - i).padStart(4, '0');
+        const open = s.open ? '' : 'display:none;';
+        return `
+          <div class="history-item" style="display:block;padding:12px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;" onclick="toggleShipment('${s.id}')">
+              <div>
+                <div style="font-size:20px;font-weight:700;">${n}</div>
+                <div style="color:#16a34a;font-weight:700;font-size:18px;">${escapeHtml(s.phone || '')}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:700;">${Number(s.sum)||0} грн</div>
+                <div style="font-size:13px;color:var(--muted);">${escapeHtml(s.item || '')}${s.item ? ' · ' : ''}${escapeHtml(s.name || '')}</div>
+              </div>
+            </div>
+            <div style="${open}margin-top:10px;font-size:15px;line-height:1.45;">
+              <div style="color:var(--muted);">Товар</div>
+              <div>${escapeHtml(s.item || '—')}</div>
+              <div style="margin-top:8px;color:var(--muted);">Отримувач</div>
+              <div>${escapeHtml(s.name || '')}</div>
+              <div style="margin-top:8px;color:var(--muted);">Місто / відділення</div>
+              <div>${escapeHtml(s.place || '')}</div>
+              <div style="margin-top:8px;color:#16a34a;font-weight:600;">${escapeHtml(s.phone || '')}</div>
+              <div style="margin-top:8px;font-weight:700;">${Number(s.sum)||0} грн</div>
+              <button class="action-btn delete" style="margin-top:8px;" onclick="event.stopPropagation();deleteShipment('${s.id}')">🗑</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function addShipment() {
+      const item = document.getElementById('shipItem').value.trim();
+      const name = document.getElementById('shipName').value.trim();
+      const place = document.getElementById('shipPlace').value.trim();
+      const phone = document.getElementById('shipPhone').value.trim();
+      const sum = Number(document.getElementById('shipSum').value);
+      if (!item) return showToast('Вкажіть назву товару');
+      if (!name) return showToast('Вкажіть отримувача');
+      if (!place) return showToast('Вкажіть місто / відділення');
+      if (!phone) return showToast('Вкажіть телефон');
+      if (document.getElementById('shipSum').value === '') return showToast('Вкажіть суму');
+      if (!state.shipments) state.shipments = [];
+      state.shipments.push({ id: uid(), item, name, place, phone, sum, open: false });
+      document.getElementById('shipItem').value = '';
+      document.getElementById('shipName').value = '';
+      document.getElementById('shipPlace').value = '';
+      document.getElementById('shipPhone').value = '';
+      document.getElementById('shipSum').value = '';
+      saveState();
+      refreshAll();
+      showToast('Відправку додано');
+    }
+
+    function toggleShipment(id) {
+      const s = (state.shipments || []).find(x => x.id === id);
+      if (!s) return;
+      s.open = !s.open;
+      renderShipments();
+    }
+
+    function deleteShipment(id) {
+      if (!confirm('Видалити відправку?')) return;
+      state.shipments = (state.shipments || []).filter(x => x.id !== id);
+      saveState();
+      refreshAll();
+      showToast('Відправку видалено');
+    }
+
+    function renderKits() {
+      const el = document.getElementById('kitsList');
+      if (state.kits.length === 0) {
+        el.innerHTML = '<div class="empty">Немає комплектів</div>';
+        return;
+      }
+      el.innerHTML = state.kits.map(k => {
+        const names = k.components.map(cid => {
+          const p = state.products.find(x => x.id === cid);
+          return p ? p.name : '?';
+        }).join(', ');
+        return `
+          <div class="kit-item">
+            <div>
+              <div><strong>${escapeHtml(k.name)}</strong></div>
+              <div class="kit-components">${escapeHtml(names)}</div>
+            </div>
+            <div class="actions">
+              <button class="action-btn edit" onclick="editKit('${k.id}')">✏️</button>
+              <button class="action-btn delete" onclick="deleteKit('${k.id}')">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========== ACTIONS ==========
+    function addIncoming() {
+      const dateVal = document.getElementById('inDay').value;
+      if (!dateVal) return showToast('Оберіть дату');
+      const d = new Date(dateVal);
+      const day = d.getDate();
+      const month = d.getMonth() + 1;
+      const year = d.getFullYear();
+      const itemVal = document.getElementById('inItem').value;
+      const qty = parseInt(document.getElementById('inQty').value);
+      const comment = document.getElementById('inComment').value.trim();
+      if (!itemVal) return showToast('Оберіть товар або комплект');
+      if (!qty || qty < 1) return showToast('Вкажіть кількість');
+
+      const [type, id] = itemVal.split(':');
+      applyOperation('in', day, type, id, qty, comment, month, year);
+      document.getElementById('inDay').value = new Date().toISOString().slice(0,10);
+      document.getElementById('inQty').value = 1;
+      document.getElementById('inItem').value = '';
+      document.getElementById('inComment').value = '';
+      showToast('Прихід додано');
+      refreshAll();
+    }
+
+    function addSale() {
+      const dateVal = document.getElementById('outDay').value;
+      if (!dateVal) return showToast('Оберіть дату');
+      const d = new Date(dateVal);
+      const day = d.getDate();
+      const month = d.getMonth() + 1;
+      const year = d.getFullYear();
+      const itemVal = document.getElementById('outItem').value;
+      const qty = parseInt(document.getElementById('outQty').value);
+      const comment = document.getElementById('outComment').value.trim();
+      if (!itemVal) return showToast('Оберіть товар або комплект');
+      if (!qty || qty < 1) return showToast('Вкажіть кількість');
+
+      const [type, id] = itemVal.split(':');
+      if (!checkStock(type, id, qty)) {
+        return showToast('Недостатньо на складі');
+      }
+      applyOperation('out', day, type, id, qty, comment, month, year);
+      document.getElementById('outDay').value = new Date().toISOString().slice(0,10);
+      document.getElementById('outQty').value = 1;
+      document.getElementById('outItem').value = '';
+      document.getElementById('outComment').value = '';
+      showToast('Продаж додано');
+      refreshAll();
+    }
+
+    function checkStock(type, id, qty) {
+      if (type === 'product') {
+        const p = state.products.find(x => x.id === id);
+        return p && p.qty >= qty;
+      } else {
+        const kit = state.kits.find(x => x.id === id);
+        if (!kit) return false;
+        return kit.components.every(cid => {
+          const p = state.products.find(x => x.id === cid);
+          return p && p.qty >= qty;
+        });
+      }
+    }
+
+    function applyOperation(opType, day, itemType, itemId, qty, comment = '', month = null, year = null) {
+      const now = new Date();
+      month = month || (now.getMonth() + 1);
+      year = year || now.getFullYear();
+      let itemName = '';
+      if (itemType === 'product') {
+        const p = state.products.find(x => x.id === itemId);
+        if (!p) return;
+        itemName = p.name;
+        p.qty += (opType === 'in' ? qty : -qty);
+      } else {
+        const kit = state.kits.find(x => x.id === itemId);
+        if (!kit) return;
+        itemName = kit.name;
+        kit.components.forEach(cid => {
+          const p = state.products.find(x => x.id === cid);
+          if (p) p.qty += (opType === 'in' ? qty : -qty);
+        });
+      }
+      state.history.push({
+        id: uid(),
+        type: opType,
+        day,
+        month,
+        year,
+        itemId,
+        itemName,
+        itemType,
+        qty,
+        comment: comment || '',
+        timestamp: now.toISOString()
+      });
+      saveState();
+    }
+
+    function addProduct() {
+      const name = document.getElementById('newProductName').value.trim();
+      if (!name) return showToast('Введіть назву');
+      if (state.products.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        return showToast('Такий товар вже є');
+      }
+      const unit = document.getElementById('newProductUnit').value.trim() || 'шт';
+      const category = document.getElementById('newProductCat').value.trim();
+      const minQty = parseInt(document.getElementById('newProductMin').value) || 0;
+      state.products.push({ id: uid(), name, qty: 0, unit, category, minQty });
+      document.getElementById('newProductName').value = '';
+      document.getElementById('newProductCat').value = '';
+      document.getElementById('newProductMin').value = 0;
+      saveState();
+      refreshAll();
+      showToast('Товар додано');
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Видалити товар? Він також зникне з комплектів.')) return;
+      state.products = state.products.filter(p => p.id !== id);
+      state.kits.forEach(k => {
+        k.components = k.components.filter(c => c !== id);
+      });
+      saveState();
+      refreshAll();
+      showToast('Товар видалено');
+    }
+
+    function openKitModal(id = null) {
+      state.editingKitId = id;
+      document.getElementById('kitModalTitle').textContent = id ? 'Редагувати комплект' : 'Створити комплект';
+      document.getElementById('kitName').value = '';
+      const list = document.getElementById('kitComponents');
+      list.innerHTML = state.products.map(p => `
+        <label class="checkbox-item">
+          <input type="checkbox" value="${p.id}">
+          ${escapeHtml(p.name)}
+        </label>
+      `).join('');
+      if (id) {
+        const kit = state.kits.find(k => k.id === id);
+        if (kit) {
+          document.getElementById('kitName').value = kit.name;
+          kit.components.forEach(cid => {
+            const cb = list.querySelector(`input[value="${cid}"]`);
+            if (cb) cb.checked = true;
+          });
+        }
+      }
+      document.getElementById('kitModal').classList.add('show');
+    }
+
+    function closeKitModal() {
+      document.getElementById('kitModal').classList.remove('show');
+      state.editingKitId = null;
+    }
+
+    function saveKit() {
+      const name = document.getElementById('kitName').value.trim();
+      if (!name) return showToast('Введіть назву комплекту');
+      const checked = [...document.querySelectorAll('#kitComponents input:checked')].map(c => c.value);
+      if (checked.length === 0) return showToast('Оберіть хоча б один товар');
+
+      if (state.editingKitId) {
+        const kit = state.kits.find(k => k.id === state.editingKitId);
+        if (kit) {
+          kit.name = name;
+          kit.components = checked;
+        }
+      } else {
+        state.kits.push({ id: uid(), name, components: checked });
+      }
+      saveState();
+      closeKitModal();
+      refreshAll();
+      showToast('Комплект збережено');
+    }
+
+    function editKit(id) {
+      openKitModal(id);
+    }
+
+    function deleteKit(id) {
+      if (!confirm('Видалити комплект?')) return;
+      state.kits = state.kits.filter(k => k.id !== id);
+      saveState();
+      refreshAll();
+      showToast('Комплект видалено');
+    }
+
+    function reverseStockChange(item) {
+      // Відкотити вплив запису на залишки
+      const reverseQty = item.type === 'in' ? -item.qty : item.qty;
+      if (item.itemType === 'product') {
+        const p = state.products.find(x => x.id === item.itemId);
+        if (p) p.qty += reverseQty;
+      } else {
+        const kit = state.kits.find(k => k.id === item.itemId);
+        if (kit) {
+          kit.components.forEach(cid => {
+            const p = state.products.find(x => x.id === cid);
+            if (p) p.qty += reverseQty;
+          });
+        }
+      }
+    }
+
+    function applyStockChange(type, itemType, itemId, qty) {
+      if (itemType === 'product') {
+        const p = state.products.find(x => x.id === itemId);
+        if (p) p.qty += (type === 'in' ? qty : -qty);
+      } else {
+        const kit = state.kits.find(k => k.id === itemId);
+        if (kit) {
+          kit.components.forEach(cid => {
+            const p = state.products.find(x => x.id === cid);
+            if (p) p.qty += (type === 'in' ? qty : -qty);
+          });
+        }
+      }
+    }
+
+    function editHistoryItem(id) {
+      const item = state.history.find(h => h.id === id);
+      if (!item) return;
+      state.editingHistoryId = id;
+
+      document.getElementById('editHistType').value = item.type;
+      document.getElementById('editHistDay').value = item.day;
+      document.getElementById('editHistQty').value = item.qty;
+      document.getElementById('editHistComment').value = item.comment || '';
+
+      // Заповнити select
+      const options = ['<option value="">— Оберіть —</option>'];
+      state.products.forEach(p => {
+        options.push(`<option value="product:${p.id}">${escapeHtml(p.name)}</option>`);
+      });
+      state.kits.forEach(k => {
+        options.push(`<option value="kit:${k.id}">🔧 ${escapeHtml(k.name)}</option>`);
+      });
+      const select = document.getElementById('editHistItem');
+      select.innerHTML = options.join('');
+      select.value = item.itemType + ':' + item.itemId;
+
+      document.getElementById('editHistoryModal').classList.add('show');
+    }
+
+    function closeEditHistoryModal() {
+      document.getElementById('editHistoryModal').classList.remove('show');
+      state.editingHistoryId = null;
+    }
+
+    function saveEditHistory() {
+      const item = state.history.find(h => h.id === state.editingHistoryId);
+      if (!item) return;
+
+      const newType = document.getElementById('editHistType').value;
+      const newDay = parseInt(document.getElementById('editHistDay').value);
+      const itemVal = document.getElementById('editHistItem').value;
+      const newQty = parseInt(document.getElementById('editHistQty').value);
+      const newComment = document.getElementById('editHistComment').value.trim();
+
+      if (!newDay || newDay < 1 || newDay > 31) return showToast('Вкажіть день');
+      if (!itemVal) return showToast('Оберіть товар або комплект');
+      if (!newQty || newQty < 1) return showToast('Вкажіть кількість');
+
+      const [newItemType, newItemId] = itemVal.split(':');
+
+      // 1. Відкотити старий вплив
+      reverseStockChange(item);
+
+      // 2. Перевірити наявність для нового продажу
+      if (newType === 'out' && !checkStock(newItemType, newItemId, newQty)) {
+        // Повернути старий вплив назад
+        applyStockChange(item.type, item.itemType, item.itemId, item.qty);
+        return showToast('Недостатньо на складі для нової кількості');
+      }
+
+      // 3. Застосувати новий вплив
+      applyStockChange(newType, newItemType, newItemId, newQty);
+
+      // 4. Оновити запис
+      let newItemName = '';
+      if (newItemType === 'product') {
+        const p = state.products.find(x => x.id === newItemId);
+        newItemName = p ? p.name : '?';
+      } else {
+        const k = state.kits.find(x => x.id === newItemId);
+        newItemName = k ? k.name : '?';
+      }
+
+      item.type = newType;
+      item.day = newDay;
+      item.itemType = newItemType;
+      item.itemId = newItemId;
+      item.itemName = newItemName;
+      item.qty = newQty;
+      item.comment = newComment;
+
+      saveState();
+      closeEditHistoryModal();
+      refreshAll();
+      showToast('Запис оновлено');
+    }
+
+    function deleteHistoryItem(id) {
+      const item = state.history.find(h => h.id === id);
+      if (!item) return;
+      if (!confirm(`Видалити запис?\n${item.type === 'in' ? 'Прихід' : 'Продаж'}: ${item.itemName} × ${item.qty}\n\nЗалишки на складі будуть відкореговані.`)) return;
+
+      reverseStockChange(item);
+      state.history = state.history.filter(h => h.id !== id);
+      saveState();
+      refreshAll();
+      showToast('Запис видалено, залишки оновлено');
+    }
+
+    function clearHistory() {
+      // Перше питання: чи очищати взагалі
+      if (!confirm('Очистити історію операцій?')) return;
+
+      // Друге питання: чи також залишки
+      const alsoResetStock = confirm(
+        'Також скинути залишки на складі до 0?\n\n' +
+        '«OK» — так, очистити історію І залишки\n' +
+        '«Скасувати» — тільки історію (залишки залишаться)'
+      );
+
+      state.history = [];
+      if (alsoResetStock) {
+        state.products.forEach(p => p.qty = 0);
+        showToast('Історію і залишки очищено');
+      } else {
+        showToast('Історію очищено (залишки збережено)');
+      }
+      saveState();
+      refreshAll();
+    }
+
+    function resetAllData() {
+      if (!confirm('УВАГА! Вся історія буде видалена, а залишки скинуться до 0. Продовжити?')) return;
+      state.history = [];
+      state.products.forEach(p => p.qty = 0);
+      saveState();
+      refreshAll();
+      showToast('Дані скинуто');
+    }
+
+    function generateReport() {
+      const month = parseInt(document.getElementById('reportMonth').value);
+      const year = parseInt(document.getElementById('reportYear').value);
+      const from = parseInt(document.getElementById('reportFrom').value) || 1;
+      const to = parseInt(document.getElementById('reportTo').value) || 31;
+
+      const filtered = state.history.filter(h =>
+        h.month === month && h.year === year && h.day >= from && h.day <= to
+      );
+
+      const el = document.getElementById('reportResult');
+      if (filtered.length === 0) {
+        el.innerHTML = '<div class="empty">Немає операцій за цей період</div>';
+        return;
+      }
+
+      let inTotal = 0, outTotal = 0;
+      const byItem = {};
+      filtered.forEach(h => {
+        if (h.type === 'in') inTotal += h.qty;
+        else outTotal += h.qty;
+        if (!byItem[h.itemName]) byItem[h.itemName] = { in: 0, out: 0 };
+        byItem[h.itemName][h.type] += h.qty;
+      });
+
+      const topSales = Object.entries(byItem)
+        .map(([name, v]) => ({ name, out: v.out }))
+        .filter(x => x.out > 0)
+        .sort((a, b) => b.out - a.out)
+        .slice(0, 5);
+
+      let html = `
+        <div style="margin-top:12px;padding:12px;background:var(--input-bg);border-radius:10px;">
+          <div class="report-line"><span>Прихідів:</span><strong style="color:var(--success)">${inTotal}</strong></div>
+          <div class="report-line"><span>Продажів:</span><strong style="color:var(--danger)">${outTotal}</strong></div>
+        </div>`;
+      if (topSales.length) {
+        html += `<div style="margin-top:12px;font-weight:600;">🔥 Топ продажів:</div>`;
+        topSales.forEach((t, i) => {
+          html += `<div class="report-line"><span>${i+1}. ${escapeHtml(t.name)}</span><strong style="color:var(--danger)">−${t.out}</strong></div>`;
+        });
+      }
+      html += `<div style="margin-top:12px;font-weight:600;">По товарах:</div>`;
+      Object.entries(byItem).forEach(([name, v]) => {
+        html += `<div class="report-line">
+          <span>${escapeHtml(name)}</span>
+          <span><span style="color:var(--success)">+${v.in}</span> / <span style="color:var(--danger)">−${v.out}</span></span>
+        </div>`;
+      });
+      el.innerHTML = html;
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? '' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('sklad_theme', next);
+    }
+    // Restore theme
+    (function() {
+      const t = localStorage.getItem('sklad_theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+
+    function copyLink() {
+      navigator.clipboard.writeText(location.href).then(() => showToast('Посилання скопійовано'));
+    }
+
+    function quickAdjust(id, delta) {
+      const p = state.products.find(x => x.id === id);
+      if (!p) return;
+      p.qty = Math.max(0, p.qty + delta);
+      // Add to history as adjustment
+      const now = new Date();
+      state.history.push({
+        id: uid(),
+        type: delta > 0 ? 'in' : 'out',
+        day: now.getDate(),
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        itemId: id,
+        itemName: p.name,
+        itemType: 'product',
+        qty: Math.abs(delta),
+        comment: 'Швидка зміна',
+        timestamp: now.toISOString()
+      });
+      saveState();
+      refreshAll();
+    }
+
+    function downloadBackup() {
+      const data = JSON.stringify(getStatePayload(), null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sklad_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Бекап завантажено');
+    }
+
+    function restoreBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.products) throw new Error('Невірний формат');
+          if (!confirm('Відновити дані з бекапу? Поточні дані будуть замінені.')) return;
+          applyPayload(data);
+          await saveState();
+          refreshAll();
+          showToast('Дані відновлено');
+        } catch (err) {
+          showToast('Помилка файлу бекапу');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function shareApp() {
+      if (navigator.share) {
+        navigator.share({ title: 'Складський облік', url: location.href });
+      } else {
+        navigator.clipboard.writeText(location.href);
+        showToast('Посилання скопійовано');
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[m]);
+    }
+
+    // ========== PWA ==========
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // ========== START ==========
+    (async () => {
+      await loadState();
+      const t = new Date().toISOString().slice(0,10);
+      const inD = document.getElementById('inDay');
+      const outD = document.getElementById('outDay');
+      if (inD && !inD.value) inD.value = t;
+      if (outD && !outD.value) outD.value = t;
+      refreshAll();
+    })();
+  </script>
+</body>
+</html>
